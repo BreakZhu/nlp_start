@@ -8,6 +8,7 @@
 import os
 import re
 import sys
+from word_opt_util import word_cut_jieba
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -16,6 +17,7 @@ sys.setdefaultencoding('utf8')
 
 data_dir = 'E:\\sougo\\souhunews\\'
 data_simple = 'E:\\sougo\\souhusimple\\'
+data_words = 'E:\\sougo\\souhuwords\\'
 
 
 def listdir(data_path, list_names):
@@ -28,14 +30,14 @@ def listdir(data_path, list_names):
 
 
 """字符数小于这个数目的content将不被保存"""
-content_words = 30
+content_words_length = 30
 """获取所有语料"""
 list_name = []
 listdir(data_dir, list_name)
 
 """对每个语料"""
 for path in list_name:
-    print(path)
+    print path
     source_file = open(path, 'rb').read().decode("utf8")
 
     """
@@ -46,14 +48,22 @@ for path in list_name:
 
     classes = patternURL.findall(source_file)
     contents = patternContent.findall(source_file)
+    contents_words = []
 
     """
     # 把所有内容小于30字符的文本全部过滤掉
+    pop 弹出元素，默认从后往前
     """
     for i in range(len(contents))[::-1]:
-        if len(contents[i]) < content_words:
+        if len(contents[i]) < content_words_length:
             contents.pop(i)
             classes.pop(i)
+        else:
+            p = re.compile(r'[-、,$()#+&*{}<>《》:。.·@!！^￥:;…\"“”/\-\[ \]]')
+            content_txt = re.sub(p, " ", contents[i])
+            contents_words.append(" ".join(word_cut_jieba(content_txt)))
+    # 添加分词后的集合后翻转
+    contents_words.reverse()
 
     """
     把URL进一步提取出来，只提取出一级url作为类别
@@ -66,7 +76,12 @@ for path in list_name:
     """
     按照RUL作为类别保存到samples文件夹中
     """
-    for i in range(len(classes)):
+    classes_length = len(classes)
+    for i in range(classes_length):
         file_name = data_simple + classes[i].split('.')[0] + '.txt'
         f = open(file_name, 'a+')
         f.writelines(contents[i]+"\n")
+
+        file_words_name = data_words + classes[i].split('.')[0] + '.txt'
+        fw = open(file_words_name, 'a+')
+        fw.writelines(contents_words[i] + "\n")
